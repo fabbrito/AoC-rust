@@ -17,9 +17,11 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use indoc::indoc;
 
-    const EXAMPLE: &str = "\
-";
+    const EXAMPLE: &str = indoc! {"
+        paste the example here
+    "};
 
     #[test]
     fn p1() {

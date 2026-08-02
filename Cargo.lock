@@ -11,6 +11,7 @@ name = "aoc2023"
 version = "0.1.0"
 dependencies = [
  "aoc",
+ "indoc",
 ]
 
 [[package]]
@@ -18,6 +19,7 @@ name = "aoc2024"
 version = "0.1.0"
 dependencies = [
  "aoc",
+ "indoc",
 ]
 
 [[package]]
@@ -25,4 +27,20 @@ name = "aoc2025"
 version = "0.1.0"
 dependencies = [
  "aoc",
+ "indoc",
 ]
+
+[[package]]
+name = "indoc"
+version = "2.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
+name = "rustversion"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
