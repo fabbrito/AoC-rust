@@ -1,0 +1,12 @@
+[workspace]
+resolver = "3"
+members = ["aoc", "2023", "2024", "2025"]
+
+[workspace.package]
+edition = "2024"
+
+[workspace.dependencies]
+aoc = { path = "aoc" }
+
+[profile.release]
+debug = true
