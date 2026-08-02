@@ -34,7 +34,8 @@ if [[ -e $src ]]; then
 	echo "exists: $src"
 else
 	template=$(<"$root/templates/day.rs") || exit 1
-	echo "${template//DAY/$n}" >"$src" || exit 1
+	template=${template//DayNN/Day$padded}
+	echo "${template//DAYNUM/$n}" >"$src" || exit 1
 	echo "created: $src"
 fi
 

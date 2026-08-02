@@ -1,22 +1,28 @@
-fn part1(input: &str) -> usize {
-    let _ = input;
-    0
-}
+struct DayNN;
 
-fn part2(input: &str) -> usize {
-    let _ = input;
-    0
+impl aoc::Day for DayNN {
+    const DAY: u32 = DAYNUM;
+    type Output = usize;
+
+    fn part1(input: &str) -> usize {
+        let _ = input;
+        0
+    }
+
+    fn part2(input: &str) -> usize {
+        let _ = input;
+        0
+    }
 }
 
 fn main() {
-    let input = aoc::input!(DAY);
-    println!("part1: {}", part1(&input));
-    println!("part2: {}", part2(&input));
+    aoc::run!(DayNN);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use aoc::Day;
     use indoc::indoc;
 
     const EXAMPLE: &str = indoc! {"
@@ -25,11 +31,11 @@ mod tests {
 
     #[test]
     fn p1() {
-        assert_eq!(part1(EXAMPLE), 0);
+        assert_eq!(DayNN::part1(EXAMPLE), 0);
     }
 
     #[test]
     fn p2() {
-        assert_eq!(part2(EXAMPLE), 0);
+        assert_eq!(DayNN::part2(EXAMPLE), 0);
     }
 }
