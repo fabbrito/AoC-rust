@@ -12,7 +12,7 @@ pad = $(shell printf '%02d' $(DAY))
 help:
 	@echo 'make day YEAR=2023 DAY=7    scaffold a day'
 	@echo 'make run YEAR=2023 DAY=7    run it (release)'
-	@echo 'make test [YEAR=2023]       cargo test'
+	@echo 'make test [YEAR=2023] [DAY=7] cargo test - whole year, or one day'
 	@echo 'make check                  clippy + rustfmt check'
 	@echo 'make fmt                    format rust + shell + markdown'
 	@echo 'make lint                   shellcheck + shfmt/dprint diff'
@@ -27,7 +27,7 @@ run:
 	cargo run --release -p aoc$(YEAR) --bin day$(pad)
 
 test:
-	cargo test -p aoc$(YEAR)
+	cargo test -p aoc$(YEAR) $(if $(DAY),--bin day$(pad))
 
 check:
 	cargo clippy --workspace --all-targets -- -D warnings
