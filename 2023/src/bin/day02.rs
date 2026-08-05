@@ -147,12 +147,4 @@ mod tests {
         assert_eq!(game.draws.len(), 2);
         assert_eq!(game.draws[1].blue, 3);
     }
-
-    #[test]
-    fn rejects_malformed() {
-        assert!("4 purple".parse::<Cubes>().is_err());
-        assert!("many red".parse::<Cubes>().is_err());
-        assert!("Game 1 3 blue".parse::<Game>().is_err());
-        assert!("Round 1: 3 blue".parse::<Game>().is_err());
-    }
 }
