@@ -47,7 +47,7 @@ impl Cubes {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Game {
     id: u32,
     draws: Vec<Cubes>,
@@ -57,18 +57,14 @@ impl FromStr for Game {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut game = Game::default();
         let (left, right) = s.split_once(':').ok_or("expected ': '")?;
-        game.id = left
+        let id = left
             .strip_prefix("Game ")
             .ok_or("no id found")?
-            .parse::<u32>()
+            .parse()
             .map_err(|e| format!("bad id: {e}"))?;
-        game.draws = right
-            .split(';')
-            .map(|d| d.parse::<Cubes>())
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(game)
+        let draws = right.split(';').map(str::parse).collect::<Result<_, _>>()?;
+        Ok(Game { id, draws })
     }
 }
 
@@ -139,5 +135,24 @@ mod tests {
     #[test]
     fn p2() {
         assert_eq!(Day02::part2(EXAMPLE), 2286);
+    }
+
+    #[test]
+    fn parses() {
+        let cubes: Cubes = "3 blue, 4 red".parse().unwrap();
+        assert_eq!((cubes.red, cubes.green, cubes.blue), (4, 0, 3));
+
+        let game: Game = "Game 12: 1 red; 2 green, 3 blue".parse().unwrap();
+        assert_eq!(game.id, 12);
+        assert_eq!(game.draws.len(), 2);
+        assert_eq!(game.draws[1].blue, 3);
+    }
+
+    #[test]
+    fn rejects_malformed() {
+        assert!("4 purple".parse::<Cubes>().is_err());
+        assert!("many red".parse::<Cubes>().is_err());
+        assert!("Game 1 3 blue".parse::<Game>().is_err());
+        assert!("Round 1: 3 blue".parse::<Game>().is_err());
     }
 }
