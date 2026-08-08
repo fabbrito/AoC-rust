@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+#
+# Validate the commit message:
+#   type(scope): subject   — scope optional, subject lowercase, no trailing
+#                            period.
+# A body, when present, is at most two bullet topics ("- ...") after a blank
+# line, 80 columns each, never prose and never trailers. A topic that doesn't
+# fit in one terse line belongs in a comment in the code.
+#
+# Enable once per clone:  make hooks
+# Skip for one commit:    git commit --no-verify
+#
+# No errexit, per the house Bash style: every rejection is counted in `status`
+# so one bad line does not hide the rest of the message. `-u` is here for the
+# opposite reason — a misspelled pattern variable expands to the empty regex,
+# which matches every word and would turn a rejection into noise.
+set -u
+
+types='feat|fix|refactor|chore|style|docs|test|ci|build|perf'
+
+# Drop the --verbose diff and git's comment lines; keep what the commit records.
+message=$(sed -e '/^#.*>8/,$d' -- "$1" | grep -v '^#')
+
+subject=''
+while IFS= read -r line; do
+	if [[ -n ${line//[[:space:]]/} ]]; then
+		subject=$line
+		break
+	fi
+done <<<"$message"
+
+# git writes these itself, or rewrites them later. Not ours to grade.
+case $subject in
+	'' | 'Merge '* | 'Revert '* | 'fixup!'* | 'squash!'*) exit 0 ;;
+esac
+
+status=0
+
+reject() {
+	printf 'commit-msg rejected: %s\n' "$1" >&2
+	status=1
+}
+
+if [[ $subject =~ ^($types)(\([a-z0-9-]+\))?:\ +(.+)$ ]]; then
+	summary=${BASH_REMATCH[3]}
+
+	[[ ${summary:0:1} =~ [[:upper:]] ]] &&
+		reject "subject must be lowercase: $summary"
+	[[ $summary == *. ]] &&
+		reject "subject must not end with a period: $summary"
+else
+	reject "header must be 'type(scope): subject' — type one of: $types"
+fi
+
+# Everything past the subject is a bullet topic, a blank line, or an error.
+# Trailers get their own message because they are the ones a tool adds without
+# being asked (Co-Authored-By, and the session URLs that leak into permanent
+# shared history).
+bullets=0
+seen_subject=false
+blank_after_subject=false
+
+while IFS= read -r line; do
+	if ! $seen_subject; then
+		[[ -n ${line//[[:space:]]/} ]] && seen_subject=true
+		continue
+	fi
+
+	if [[ -z ${line//[[:space:]]/} ]]; then
+		blank_after_subject=true
+		continue
+	fi
+
+	if ! $blank_after_subject; then
+		reject 'a body must be separated from the subject by a blank line'
+		blank_after_subject=true
+	fi
+
+	case $line in
+		Co-Authored-By:* | Claude-Session:*)
+			reject "no trailers: $line"
+			continue
+			;;
+		'- '*) ;;
+		*)
+			reject "body must be bullet topics ('- ...'), not prose: $line"
+			continue
+			;;
+	esac
+
+	((bullets++))
+	((bullets == 3)) && reject 'body must be at most two bullet topics'
+	((${#line} > 80)) &&
+		reject "bullet topic must fit in 80 columns: $line"
+done <<<"$message"
+
+exit $status

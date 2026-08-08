@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#
+# Formatting and a type check, before the commit lands. Clippy and the test
+# suite stay in `make check` / `make test` — neither is fast enough to sit
+# between you and a commit.
+#
+# Enable once per clone:  make hooks
+# Skip for one commit:    git commit --no-verify
+#
+# This grades the working tree, not the index — cargo cannot compile a
+# half-staged file. Partially staged work is checked as it exists on disk.
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+staged=()
+while IFS= read -r file; do
+	staged+=("$file")
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+((${#staged[@]} == 0)) && exit 0
+
+# Same flags as the Makefile; keep the two in sync.
+SHFMT_FLAGS=(-i 0 -ci)
+SHELLCHECK_FLAGS=(-x -P scripts)
+
+rust=false
+shell=false
+docs=false
+for file in "${staged[@]}"; do
+	case $file in
+		*.rs | Cargo.toml | */Cargo.toml | Cargo.lock | rustfmt.toml)
+			rust=true
+			;;
+		*.sh | .githooks/*)
+			shell=true
+			;;
+		*.md)
+			docs=true
+			;;
+	esac
+done
+
+status=0
+
+# Passing silently would make the hook laxer than `make lint`, which is worse
+# than having no hook at all.
+require() {
+	command -v "$1" &>/dev/null && return 0
+	printf '%s not found — %s\n' "$1" "$2" >&2
+	status=1
+	return 1
+}
+
+if $rust; then
+	printf '==> %s\n' 'cargo fmt --all --check'
+	cargo fmt --all --check || status=1
+
+	printf '==> %s\n' 'cargo check --workspace --all-targets'
+	cargo check --workspace --all-targets || status=1
+fi
+
+if $shell; then
+	scripts=(scripts/*.sh .githooks/*)
+
+	printf '==> %s\n' 'shfmt -d'
+	require shfmt 'go install mvdan.cc/sh/v3/cmd/shfmt@latest' &&
+		{ shfmt "${SHFMT_FLAGS[@]}" -d "${scripts[@]}" || status=1; }
+
+	printf '==> %s\n' 'shellcheck'
+	require shellcheck 'apt install shellcheck' &&
+		{ shellcheck "${SHELLCHECK_FLAGS[@]}" "${scripts[@]}" || status=1; }
+fi
+
+if $docs; then
+	printf '==> %s\n' 'dprint check'
+	require dprint 'cargo install dprint' &&
+		{ dprint check || status=1; }
+fi
+
+if ((status != 0)); then
+	printf '\n%s\n%s\n' \
+		'pre-commit failed.' \
+		'Fix with "make fmt", or commit with --no-verify.' >&2
+fi
+
+exit $status

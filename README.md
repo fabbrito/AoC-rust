@@ -22,6 +22,7 @@ make run YEAR=2023 DAY=1               # cargo run --release -p aoc2023 --bin da
 make test YEAR=2023                    # example tests
 make check                             # clippy -D warnings + rustfmt check
 make fmt / make lint                   # rust + shell + markdown (dprint)
+make hooks                             # enable .githooks (pre-commit + commit-msg)
 ```
 
 Or drive cargo directly: `cargo run -p aoc2023 --bin day01`, `cargo test`.

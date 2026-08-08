@@ -3,11 +3,11 @@ DAY ?=
 
 SHFMT_FLAGS = -i 0 -ci
 SHELLCHECK_FLAGS = -x -P scripts
-SCRIPTS = $(wildcard scripts/*.sh)
+SCRIPTS = $(wildcard scripts/*.sh) $(wildcard .githooks/*)
 
 pad = $(shell printf '%02d' $(DAY))
 
-.PHONY: help day run test check fmt lint clean
+.PHONY: help hooks day run test check fmt lint clean
 
 help:
 	@echo 'make day YEAR=2023 DAY=7    scaffold a day'
@@ -17,6 +17,11 @@ help:
 	@echo 'make fmt                    format rust + shell + markdown'
 	@echo 'make lint                   shellcheck + shfmt/dprint diff'
 	@echo 'make clean                  cargo clean'
+	@echo 'make hooks                  enable .githooks for this clone'
+
+hooks:
+	git config core.hooksPath .githooks
+	@echo 'hooks enabled - skip one commit with --no-verify'
 
 day:
 	@test -n '$(DAY)' || { echo 'set DAY=<n>' >&2; exit 1; }
