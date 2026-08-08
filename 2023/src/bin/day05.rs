@@ -1,12 +1,5 @@
 use std::str::FromStr;
 
-/// `T` is chosen by the call site, so one parser fills any collection.
-fn parse_numbers<T: FromIterator<u64>>(s: &str) -> Result<T, String> {
-    s.split_whitespace()
-        .map(|n| n.parse().map_err(|e| format!("{n:?}: {e}")))
-        .collect()
-}
-
 #[derive(Clone, Copy, Debug)]
 struct Span {
     start: u64,
@@ -35,7 +28,7 @@ impl FromStr for Rule {
     type Err = String;
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
-        let nums: Vec<u64> = parse_numbers(line)?;
+        let nums: Vec<u64> = aoc::parse_numbers(line)?;
         match nums[..] {
             [dest, source, len] => Ok(Rule { dest, source, len }),
             _ => Err(format!("expected 3 numbers: {line:?}")),
@@ -63,7 +56,7 @@ impl FromStr for Almanac {
         let (header, rest) = s.split_once("\n\n").ok_or("missing seed list")?;
         let (_, seeds) = header.split_once(':').ok_or("missing ':'")?;
         Ok(Almanac {
-            seeds: parse_numbers(seeds)?,
+            seeds: aoc::parse_numbers(seeds)?,
             maps: rest
                 .split("\n\n")
                 .map(str::parse)

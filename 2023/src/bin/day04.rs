@@ -7,13 +7,6 @@ struct Card {
     have: Vec<u32>,
 }
 
-/// `T` is chosen by the call site, so one parser fills any collection.
-fn parse_numbers<T: FromIterator<u32>>(s: &str) -> Result<T, String> {
-    s.split_whitespace()
-        .map(|n| n.parse().map_err(|e| format!("{n:?}: {e}")))
-        .collect()
-}
-
 impl FromStr for Card {
     type Err = String;
 
@@ -21,8 +14,8 @@ impl FromStr for Card {
         let (_, numbers) = line.split_once(':').ok_or("missing ':'")?;
         let (winning, have) = numbers.split_once('|').ok_or("missing '|'")?;
         Ok(Card {
-            winning: parse_numbers(winning)?,
-            have: parse_numbers(have)?,
+            winning: aoc::parse_numbers(winning)?,
+            have: aoc::parse_numbers(have)?,
         })
     }
 }

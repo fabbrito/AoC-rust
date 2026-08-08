@@ -1,11 +1,5 @@
 use std::str::FromStr;
 
-fn parse_numbers<T: FromIterator<u64>>(s: &str) -> Result<T, String> {
-    s.split_whitespace()
-        .map(|word| word.parse().map_err(|err| format!("{word:?}: {err}")))
-        .collect()
-}
-
 #[derive(Clone, Copy, Debug)]
 struct Race {
     time: u64,
@@ -28,8 +22,8 @@ impl FromStr for Sheet {
                 .ok_or_else(|| format!("{label} row missing"))
         };
         Ok(Sheet {
-            time: parse_numbers(row("Time:")?)?,
-            distance: parse_numbers(row("Distance:")?)?,
+            time: aoc::parse_numbers(row("Time:")?)?,
+            distance: aoc::parse_numbers(row("Distance:")?)?,
         })
     }
 }

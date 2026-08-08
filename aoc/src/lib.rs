@@ -1,5 +1,20 @@
 use std::fmt::Display;
 use std::path::Path;
+use std::str::FromStr;
+
+/// Parse whitespace-separated numbers. Both the number type and the collection
+/// come from the call site, so one parser fills any container with any numeric
+/// type: `let seeds: Vec<u64> = aoc::parse_numbers(line)?;`
+pub fn parse_numbers<N, T>(s: &str) -> Result<T, String>
+where
+    N: FromStr,
+    N::Err: Display,
+    T: FromIterator<N>,
+{
+    s.split_whitespace()
+        .map(|word| word.parse().map_err(|err| format!("{word:?}: {err}")))
+        .collect()
+}
 
 /// One puzzle day. Implement on a unit struct in `<year>/src/bin/dayNN.rs`.
 pub trait Day {
