@@ -7,18 +7,29 @@ SCRIPTS = $(wildcard scripts/*.sh) $(wildcard .githooks/*)
 
 pad = $(shell printf '%02d' $(DAY))
 
+# scope: nothing = whole workspace, YEAR = one year, YEAR + DAY = one day.
+# YEAR only narrows when passed explicitly - the ?= default above must not count.
+year_set = $(filter command line environment,$(origin YEAR))
+scope = $(if $(DAY),-p aoc$(YEAR) --bin day$(pad),$(if $(year_set),-p aoc$(YEAR),--workspace))
+# --all-targets and --tests both override --bin rather than narrowing it. For one day,
+# --profile test is what compiles the bin together with its own #[cfg(test)] module.
+lint_scope = $(scope) $(if $(DAY),--profile test,--all-targets)
+fmt_scope = $(if $(year_set)$(DAY),-p aoc$(YEAR),--all)
+
 .PHONY: help hooks day run test check pedantic fmt lint clean
 
 help:
-	@echo 'make day YEAR=2023 DAY=7    scaffold a day'
-	@echo 'make run YEAR=2023 DAY=7    run it (release)'
-	@echo 'make test [YEAR=2023] [DAY=7] cargo test - whole year, or one day'
-	@echo 'make check                  clippy + rustfmt check'
-	@echo 'make pedantic               clippy::pedantic - advisory, run now and then'
-	@echo 'make fmt                    format rust + shell + markdown'
-	@echo 'make lint                   shellcheck + shfmt/dprint diff'
-	@echo 'make clean                  cargo clean'
-	@echo 'make hooks                  enable .githooks for this clone'
+	@echo 'scope: no YEAR = whole workspace, YEAR = one year, YEAR + DAY = one day'
+	@echo
+	@echo 'make day YEAR=2023 DAY=7        scaffold a day'
+	@echo 'make run YEAR=2023 DAY=7        run it (release) - DAY required'
+	@echo 'make test [YEAR=..] [DAY=..]    cargo test'
+	@echo 'make check [YEAR=..] [DAY=..]   clippy -D warnings + rustfmt check'
+	@echo 'make pedantic [YEAR=..] [DAY=..] clippy::pedantic - advisory'
+	@echo 'make fmt                        format rust + shell + markdown'
+	@echo 'make lint                       shellcheck + shfmt/dprint diff'
+	@echo 'make clean                      cargo clean'
+	@echo 'make hooks                      enable .githooks for this clone'
 
 hooks:
 	git config core.hooksPath .githooks
@@ -30,18 +41,18 @@ day:
 
 run:
 	@test -n '$(DAY)' || { echo 'set DAY=<n>' >&2; exit 1; }
-	cargo run --release -p aoc$(YEAR) --bin day$(pad)
+	cargo run --release $(scope)
 
 test:
-	cargo test -p aoc$(YEAR) $(if $(DAY),--bin day$(pad))
+	cargo test $(scope)
 
 check:
-	cargo clippy --workspace --all-targets -- -D warnings
-	cargo fmt --all --check
+	cargo clippy $(lint_scope) -- -D warnings
+	cargo fmt $(fmt_scope) --check
 
 # advisory only - pedantic flags plenty that is fine in a puzzle solution
 pedantic:
-	cargo clippy --workspace --all-targets -- -W clippy::pedantic
+	cargo clippy $(lint_scope) -- -W clippy::pedantic
 
 fmt:
 	cargo fmt --all
