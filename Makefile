@@ -7,13 +7,14 @@ SCRIPTS = $(wildcard scripts/*.sh) $(wildcard .githooks/*)
 
 pad = $(shell printf '%02d' $(DAY))
 
-.PHONY: help hooks day run test check fmt lint clean
+.PHONY: help hooks day run test check pedantic fmt lint clean
 
 help:
 	@echo 'make day YEAR=2023 DAY=7    scaffold a day'
 	@echo 'make run YEAR=2023 DAY=7    run it (release)'
 	@echo 'make test [YEAR=2023] [DAY=7] cargo test - whole year, or one day'
 	@echo 'make check                  clippy + rustfmt check'
+	@echo 'make pedantic               clippy::pedantic - advisory, run now and then'
 	@echo 'make fmt                    format rust + shell + markdown'
 	@echo 'make lint                   shellcheck + shfmt/dprint diff'
 	@echo 'make clean                  cargo clean'
@@ -37,6 +38,10 @@ test:
 check:
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo fmt --all --check
+
+# advisory only - pedantic flags plenty that is fine in a puzzle solution
+pedantic:
+	cargo clippy --workspace --all-targets -- -W clippy::pedantic
 
 fmt:
 	cargo fmt --all

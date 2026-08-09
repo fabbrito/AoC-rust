@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn p2() {
-        assert_eq!(Day03::part2(EXAMPLE), 467835);
+        assert_eq!(Day03::part2(EXAMPLE), 467_835);
     }
 
     #[test]

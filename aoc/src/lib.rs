@@ -5,6 +5,10 @@ use std::str::FromStr;
 /// Parse whitespace-separated numbers. Both the number type and the collection
 /// come from the call site, so one parser fills any container with any numeric
 /// type: `let seeds: Vec<u64> = aoc::parse_numbers(line)?;`
+///
+/// # Errors
+/// The first word that does not parse as `N`, reported with the word and the
+/// parse error.
 pub fn parse_numbers<N, T>(s: &str) -> Result<T, String>
 where
     N: FromStr,
@@ -29,6 +33,10 @@ pub trait Day {
 }
 
 /// Read `<crate>/inputs/dayNN.txt`. Use via the [`input!`] macro.
+///
+/// # Panics
+/// If the file is missing or unreadable — a day cannot run without its input.
+#[must_use]
 pub fn read_input(manifest_dir: &str, day: u32) -> String {
     let path = Path::new(manifest_dir).join(format!("inputs/day{day:02}.txt"));
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))

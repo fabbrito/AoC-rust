@@ -8,8 +8,8 @@ const DIGIT_WORDS: [&str; 9] = [
 fn digit_as_word_at(s: &str) -> Option<u32> {
     DIGIT_WORDS
         .iter()
-        .position(|w| s.starts_with(w))
-        .map(|i| i as u32 + 1)
+        .zip(1..)
+        .find_map(|(word, value)| s.starts_with(word).then_some(value))
 }
 
 /// Value of the numeric digit starting at the front of `s`.
