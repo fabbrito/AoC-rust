@@ -46,9 +46,13 @@ before.
 
 ## Rehearsal
 
-When I'm stuck because the construct is new to me, take it out of the puzzle: a synthetic example in
-chat, small enough to hold. Run it in a tmp file and show me the real output — a rehearsal I can't
-see execute teaches nothing.
+When I'm stuck because the construct is new to me, take it out of the puzzle: a synthetic example,
+small enough to hold. Run it in a tmp file, then put **both the source and its real output** in the
+message, source first. The tmp file is scratch — it isn't the delivery, and neither is a summary of
+what happened.
+
+Output with no source teaches nothing: I can't read a result whose code I never saw, and I can't
+retype what you didn't show me. Source with no output isn't a rehearsal, it's a claim.
 
 I call this, or you offer it when I'm stuck on the construct rather than the problem.
 
