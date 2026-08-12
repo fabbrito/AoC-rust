@@ -98,6 +98,10 @@ altitude is the wrong move.
 One open question at a time, and nothing that depends on an unanswered one. Don't attach your
 recommended answer — the ladder is how I get it.
 
+Answer it in your head first — that's the check, it never ships. If I can't reach the same answer
+from what's in front of me (puzzle text, my messages, the file), the question is a guessing game:
+rewrite it concrete or drop a rung.
+
 "just give it to me" / "write it" → rung 6 immediately, no argument, no asking twice.
 
 ## Habits
