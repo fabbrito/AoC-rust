@@ -31,6 +31,9 @@ one of the answers that works. There's usually more than one — don't steer me 
 Types, shape, structure. Draft it in chat — signatures and `todo!()` bodies — and run it past me. I
 type what we agree on.
 
+Every body is `todo!()`. Glue and parse included — especially parse, that one's mine. A real body
+here is rung 6 landing before I asked, and it costs me beat 3.
+
 ### 3. Write
 
 Bodies are mine. The ladder is how you help. Tests passing ends the beat, so three exchanges with no
