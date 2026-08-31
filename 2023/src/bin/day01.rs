@@ -26,11 +26,17 @@ fn digit_at(s: &str) -> Option<u32> {
 /// `digit` decides what counts as one, since that is the only difference
 /// between the two parts.
 fn calibration(line: &str, digit: impl Fn(&str) -> Option<u32>) -> Result<u32, String> {
-    let mut digits = line.char_indices().filter_map(|(i, _)| digit(&line[i..]));
+    let mut digits = line
+        .char_indices()
+        .filter_map(|(i, _)| line.get(i..).and_then(&digit));
     let first = digits
         .next()
         .ok_or_else(|| format!("no digits in {line:?}"))?;
-    Ok(first * 10 + digits.next_back().unwrap_or(first))
+    let last = digits.next_back().unwrap_or(first);
+    first
+        .checked_mul(10)
+        .and_then(|tens| tens.checked_add(last))
+        .ok_or_else(|| format!("calibration overflows u32 in {line:?}"))
 }
 
 /// Numeric digits only.
@@ -61,20 +67,14 @@ struct Day01;
 
 impl aoc::Day for Day01 {
     const DAY: u32 = 1;
-    type Output = usize;
+    type Output = u32;
 
-    fn part1(input: &str) -> usize {
-        input
-            .lines()
-            .map(|line| line.parse::<Numeric>().expect("calibration value").0 as usize)
-            .sum()
+    fn part1(input: &str) -> u32 {
+        aoc::parse_lines(input).map(|Numeric(value)| value).sum()
     }
 
-    fn part2(input: &str) -> usize {
-        input
-            .lines()
-            .map(|line| line.parse::<Spelled>().expect("calibration value").0 as usize)
-            .sum()
+    fn part2(input: &str) -> u32 {
+        aoc::parse_lines(input).map(|Spelled(value)| value).sum()
     }
 }
 

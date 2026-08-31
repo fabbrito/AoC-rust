@@ -83,13 +83,11 @@ impl aoc::Day for Day06 {
     type Output = usize;
 
     fn part1(input: &str) -> usize {
-        let sheet = input.parse::<Sheet>().expect("parsed sheet");
-        margin(&sheet.races())
+        margin(&aoc::parse::<Sheet>(input).races())
     }
 
     fn part2(input: &str) -> usize {
-        let sheet = input.parse::<Sheet>().expect("parsed sheet");
-        margin(&sheet.joined_race())
+        margin(&aoc::parse::<Sheet>(input).joined_race())
     }
 }
 

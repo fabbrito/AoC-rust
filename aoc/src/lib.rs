@@ -2,9 +2,11 @@ use std::fmt::Display;
 use std::path::Path;
 use std::str::FromStr;
 
-/// Parse whitespace-separated numbers. Both the number type and the collection
-/// come from the call site, so one parser fills any container with any numeric
-/// type: `let seeds: Vec<u64> = aoc::parse_numbers(line)?;`
+/// Parse whitespace-separated numbers.
+///
+/// Both the number type and the collection come from the call site, so one
+/// parser fills any container with any numeric type:
+/// `let seeds: Vec<u64> = aoc::parse_numbers(line)?;`
 ///
 /// # Errors
 /// The first word that does not parse as `N`, reported with the word and the
@@ -18,6 +20,43 @@ where
     s.split_whitespace()
         .map(|word| word.parse().map_err(|err| format!("{word:?}: {err}")))
         .collect()
+}
+
+/// The whole of `input` parsed as `T`.
+///
+/// Same bargain as [`parse_lines`]: the panic is deliberate and lives here so
+/// no day needs its own `expect`.
+///
+/// # Panics
+/// If `input` does not parse, naming the error.
+#[must_use]
+pub fn parse<T>(input: &str) -> T
+where
+    T: FromStr,
+    T::Err: Display,
+{
+    input
+        .parse()
+        .unwrap_or_else(|err| panic!("cannot parse input: {err}"))
+}
+
+/// Every line of `input` parsed as `T`.
+///
+/// The panic is deliberate and lives here so no day needs its own `expect`:
+/// a puzzle input that will not parse means the parser is wrong, and half an
+/// answer is worse than none.
+///
+/// # Panics
+/// On the first line that fails to parse, naming the line number and the error.
+pub fn parse_lines<T>(input: &str) -> impl Iterator<Item = T>
+where
+    T: FromStr,
+    T::Err: Display,
+{
+    input.lines().enumerate().map(|(i, line)| {
+        line.parse()
+            .unwrap_or_else(|err| panic!("line {}: {err}", i.saturating_add(1)))
+    })
 }
 
 /// One puzzle day. Implement on a unit struct in `<year>/src/bin/dayNN.rs`.

@@ -35,11 +35,7 @@ impl Card {
 }
 
 fn parse_cards(input: &str) -> Vec<Card> {
-    input
-        .lines()
-        .map(str::parse)
-        .collect::<Result<_, String>>()
-        .expect("parsed cards")
+    aoc::parse_lines(input).collect()
 }
 
 struct Day04;
@@ -54,11 +50,18 @@ impl aoc::Day for Day04 {
 
     fn part2(input: &str) -> usize {
         let cards = parse_cards(input);
-        let mut counts = vec![1; cards.len()];
+        let mut counts = vec![1_usize; cards.len()];
         for (i, card) in cards.iter().enumerate() {
-            let copies = counts[i];
-            for slot in counts[i + 1..].iter_mut().take(card.matches()) {
-                *slot += copies;
+            // Split after this card so its own count is readable while the
+            // cards it wins are borrowed mutably.
+            let Some((through_this, won)) = counts.split_at_mut_checked(i.saturating_add(1)) else {
+                break;
+            };
+            let Some(&mut copies) = through_this.last_mut() else {
+                break;
+            };
+            for slot in won.iter_mut().take(card.matches()) {
+                *slot = slot.saturating_add(copies);
             }
         }
         counts.into_iter().sum()

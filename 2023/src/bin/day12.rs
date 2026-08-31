@@ -2,10 +2,15 @@ use std::collections::HashMap;
 
 struct Day12;
 
-fn parse(line: &str) -> (Vec<u8>, Vec<usize>) {
-    let (springs, groups) = line.split_once(' ').unwrap();
-    let groups: Vec<usize> = groups.split(',').map(|n| n.parse().unwrap()).collect();
-    (springs.as_bytes().to_vec(), groups)
+fn parse(line: &str) -> Result<(Vec<u8>, Vec<usize>), String> {
+    let (springs, groups) = line
+        .split_once(' ')
+        .ok_or("expected '<springs> <group,group,..>'")?;
+    let groups = groups
+        .split(',')
+        .map(|n| n.parse().map_err(|e| format!("bad group {n:?}: {e}")))
+        .collect::<Result<_, _>>()?;
+    Ok((springs.as_bytes().to_vec(), groups))
 }
 
 fn unfold(springs: &[u8], groups: &[usize]) -> (Vec<u8>, Vec<usize>) {
@@ -16,7 +21,9 @@ fn rows(input: &str) -> impl Iterator<Item = (Vec<u8>, Vec<usize>)> {
     input
         .lines()
         .filter(|line| !line.trim().is_empty())
-        .map(parse)
+        // A row that will not parse means the parser is wrong; half an answer
+        // would be worse than the panic.
+        .map(|line| parse(line).unwrap_or_else(|err| panic!("{line:?}: {err}")))
 }
 
 type Memo = HashMap<(usize, usize), usize>;
@@ -43,19 +50,25 @@ fn count(springs: &[u8], groups: &[usize], memo: &mut Memo) -> usize {
         return 0;
     };
 
-    let mut total = 0;
+    let mut total = 0_usize;
     for start in 0..=last_start {
-        let block_intact = !springs[start..start + size].contains(&b'.');
-        let separator_clear = springs.get(start + size) != Some(&b'#');
+        // start <= last_start == len - size, so this range is always in bounds
+        let end = start.saturating_add(size);
+        let Some(block) = springs.get(start..end) else {
+            break;
+        };
+        let block_intact = !block.contains(&b'.');
+        let separator_clear = springs.get(end) != Some(&b'#');
 
         if block_intact && separator_clear {
             // +1 skips the separator; get(range) yields None past the end, so empty tail
-            let rest = springs.get(start + size + 1..).unwrap_or_default();
-            total += count(rest, &groups[1..], memo);
+            let rest = springs.get(end.saturating_add(1)..).unwrap_or_default();
+            let unplaced = groups.get(1..).unwrap_or_default();
+            total = total.saturating_add(count(rest, unplaced, memo));
         }
 
         // sliding past a damaged spring would abandon it -> no later start is legal
-        if springs[start] == b'#' {
+        if springs.get(start) == Some(&b'#') {
             break;
         }
     }
@@ -103,14 +116,14 @@ mod tests {
 
     #[test]
     fn parses_a_row() {
-        let (springs, groups) = parse("???.### 1,1,3");
+        let (springs, groups) = parse("???.### 1,1,3").unwrap();
         assert_eq!(springs, b"???.###");
         assert_eq!(groups, [1, 1, 3]);
     }
 
     #[test]
     fn unfolds_a_row() {
-        let (springs, groups) = parse(".# 1");
+        let (springs, groups) = parse(".# 1").unwrap();
         let (springs, groups) = unfold(&springs, &groups);
         assert_eq!(springs, b".#?.#?.#?.#?.#");
         assert_eq!(groups, [1, 1, 1, 1, 1]);

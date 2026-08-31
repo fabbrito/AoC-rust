@@ -11,3 +11,25 @@ indoc = "2.0.7"
 
 [profile.release]
 debug = true
+
+# Adopted rules only - what `make lint` fails on. Everything still being vetted
+# lives in `make pedantic`, which is advisory: skim it, promote what earns its
+# keep, and leave the rest there.
+[workspace.lints.clippy]
+pedantic = { level = "deny", priority = -1 }   # UM, ACTUALLY
+# ...except the cast trio, which fires on every honest puzzle cast.
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+
+# DENY PANICS
+unwrap_used = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+string_slice = "deny"
+panic_in_result_fn = "deny"
+unreachable = "deny"
+unimplemented = "deny"
+todo = "deny"
+unchecked_time_subtraction = "deny"
+exit = "deny"

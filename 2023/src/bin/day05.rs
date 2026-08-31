@@ -135,9 +135,12 @@ impl Almanac {
     }
 
     fn seeds_as_ranges(&self) -> Vec<Span> {
-        self.seeds
-            .chunks_exact(2)
-            .filter_map(|pair| Span::new(pair[0], pair[1]))
+        // as_chunks splits into whole pairs and whatever is left over; the
+        // pairs are `[u64; 2]`, so they destructure instead of being indexed.
+        let (pairs, _leftover) = self.seeds.as_chunks::<2>();
+        pairs
+            .iter()
+            .filter_map(|&[start, len]| Span::new(start, len))
             .collect()
     }
 
@@ -148,7 +151,7 @@ impl Almanac {
             .into_iter()
             .map(|span| span.start)
             .min()
-            .expect("at least one seed")
+            .unwrap_or_else(|| panic!("almanac has no seeds"))
     }
 }
 
@@ -159,12 +162,12 @@ impl aoc::Day for Day05 {
     type Output = u64;
 
     fn part1(input: &str) -> u64 {
-        let almanac = input.parse::<Almanac>().expect("parsed almanac");
+        let almanac = aoc::parse::<Almanac>(input);
         almanac.lowest_location(almanac.seeds_as_values())
     }
 
     fn part2(input: &str) -> u64 {
-        let almanac = input.parse::<Almanac>().expect("parsed almanac");
+        let almanac = aoc::parse::<Almanac>(input);
         almanac.lowest_location(almanac.seeds_as_ranges())
     }
 }

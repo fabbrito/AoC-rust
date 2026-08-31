@@ -22,15 +22,17 @@ impl TryFrom<char> for Turn {
 /// Euclid: the remainder chain hits zero, and the last non-zero value is the
 /// divisor both numbers share.
 fn gcd(mut a: usize, mut b: usize) -> usize {
-    while b != 0 {
-        (a, b) = (b, a % b);
+    // `checked_rem` is the b != 0 test and the remainder in one step: when the
+    // chain hits zero there is nothing left to divide by, and `a` is the gcd.
+    while let Some(rem) = a.checked_rem(b) {
+        (a, b) = (b, rem);
     }
     a
 }
 
 /// Divide before multiplying — `a * b` overflows long before the real answer.
 fn lcm(a: usize, b: usize) -> usize {
-    a / gcd(a, b) * b
+    a.checked_div(gcd(a, b)).map_or(0, |q| q.saturating_mul(b))
 }
 
 /// One `AAA = (BBB, CCC)` line, as the entry it becomes.
@@ -57,17 +59,21 @@ impl Map {
     /// `turns` and repeating them as needed.
     fn steps(&self, start: &str, done: impl Fn(&str) -> bool) -> usize {
         let mut node = start;
-        let mut steps = 0;
+        let mut steps = 0_usize;
 
         // `cycle()` restarts the slice forever, so running out of turns is not
         // a case the walk has to handle.
         for turn in self.turns.iter().cycle() {
-            let (left, right) = &self.network[node];
+            // A label with no entry is a dead end, not a reason to panic: stop
+            // and report the steps taken so far.
+            let Some((left, right)) = self.network.get(node) else {
+                break;
+            };
             node = match turn {
                 Turn::Left => left,
                 Turn::Right => right,
             };
-            steps += 1;
+            steps = steps.saturating_add(1);
 
             if done(node) {
                 break;
@@ -101,12 +107,11 @@ impl aoc::Day for Day08 {
     type Output = usize;
 
     fn part1(input: &str) -> usize {
-        let map = input.parse::<Map>().expect("parsed Map");
-        map.steps("AAA", |node| node == "ZZZ")
+        aoc::parse::<Map>(input).steps("AAA", |node| node == "ZZZ")
     }
 
     fn part2(input: &str) -> usize {
-        let map = input.parse::<Map>().expect("parsed Map");
+        let map = aoc::parse::<Map>(input);
         map.network
             .keys()
             .filter(|node| node.ends_with('A'))

@@ -30,14 +30,14 @@ impl<'a> Grid<'a> {
             .find_map(|(r, row)| Some((r, row.iter().position(|&b| b == b'S')?)))
     }
 
-    /// One step `dir` from `pos`: where you land and what's there. `None` off
-    /// the edge.
-    fn step(&self, pos: Pos, dir: Dir) -> Option<(Pos, u8)> {
+    /// One step `dir` from `(row, col)`: where you land and what's there.
+    /// `None` off the edge.
+    fn step(&self, (row, col): Pos, dir: Dir) -> Option<(Pos, u8)> {
         let (r, c) = match dir {
-            Dir::North => (pos.0.checked_sub(1)?, pos.1),
-            Dir::East => (pos.0, pos.1 + 1),
-            Dir::South => (pos.0 + 1, pos.1),
-            Dir::West => (pos.0, pos.1.checked_sub(1)?),
+            Dir::North => (row.checked_sub(1)?, col),
+            Dir::East => (row, col.checked_add(1)?),
+            Dir::South => (row.checked_add(1)?, col),
+            Dir::West => (row, col.checked_sub(1)?),
         };
         let tile = *self.rows.get(r)?.get(c)?;
         Some(((r, c), tile))
@@ -59,38 +59,49 @@ fn exit(pipe: u8, heading: Dir) -> Option<Dir> {
 
 /// Every tile of the main loop, in walking order, starting at `S`. Its length
 /// is both the loop's perimeter and the count of boundary lattice points.
-fn compute_edge(grid: &Grid) -> Vec<Pos> {
-    let start = grid.start().expect("grid to have a start");
-    let heading = Dir::ALL
-        .into_iter()
-        .find_map(|d| {
-            let (_, tile) = grid.step(start, d)?;
-            exit(tile, d)?;
-            Some(d)
-        })
-        .expect("S to connect to two pipes");
+/// `None` when the grid has no `S`, or nothing for it to connect to.
+fn compute_edge(grid: &Grid) -> Option<Vec<Pos>> {
+    let start = grid.start()?;
+    let heading = Dir::ALL.into_iter().find_map(|d| {
+        let (_, tile) = grid.step(start, d)?;
+        exit(tile, d)?;
+        Some(d)
+    })?;
 
     // The seed puts `start` at index 0; `exit` is `None` on `S`, which is what
-    // ends the walk when we arrive back there.
-    std::iter::successors(Some((start, heading)), |&(pos, heading)| {
-        let (next, tile) = grid.step(pos, heading).expect("loop stays on the grid");
-        exit(tile, heading).map(|next_heading| (next, next_heading))
-    })
-    .map(|(pos, _)| pos)
-    .collect()
+    // ends the walk when we arrive back there. Stepping off the grid ends it
+    // too — a loop never does, so that arm costs nothing to allow.
+    Some(
+        std::iter::successors(Some((start, heading)), |&(pos, heading)| {
+            let (next, tile) = grid.step(pos, heading)?;
+            exit(tile, heading).map(|next_heading| (next, next_heading))
+        })
+        .map(|(pos, _)| pos)
+        .collect(),
+    )
 }
 
-/// Area enclosed by a polygon given as its boundary points in order. The cross
-/// terms go negative, hence the signed sum over unsigned `Pos`.
-fn shoelace(polygon: &[Pos]) -> usize {
-    let twice_area: i64 = (0..polygon.len())
-        .map(|i| {
-            let (r0, c0) = polygon[i];
-            let (r1, c1) = polygon[(i + 1) % polygon.len()];
-            r0 as i64 * c1 as i64 - r1 as i64 * c0 as i64
-        })
-        .sum();
-    (twice_area.abs() / 2) as usize
+/// Area enclosed by a polygon given as its boundary points in order.
+///
+/// `skip(1).chain(take(1))` is the vertex list rotated one step, so zipping it
+/// against the original pairs every vertex with its successor and wraps the
+/// last back to the first — no index, no modulo.
+///
+/// `2A = |sum(r_i * c_i+1) - sum(r_i+1 * c_i)|` — the two halves are summed
+/// into separate unsigned piles and subtracted once at the end, so no term
+/// ever needs a sign. `None` if a coordinate does not fit a `u128`, which no
+/// grid reaches.
+fn shoelace(polygon: &[Pos]) -> Option<usize> {
+    let wrapped = polygon.iter().skip(1).chain(polygon.iter().take(1));
+    let mut forward: u128 = 0;
+    let mut backward: u128 = 0;
+    for (&(r0, c0), &(r1, c1)) in polygon.iter().zip(wrapped) {
+        let (r0, c0) = (u128::try_from(r0).ok()?, u128::try_from(c0).ok()?);
+        let (r1, c1) = (u128::try_from(r1).ok()?, u128::try_from(c1).ok()?);
+        forward = forward.saturating_add(r0.saturating_mul(c1));
+        backward = backward.saturating_add(r1.saturating_mul(c0));
+    }
+    usize::try_from(forward.abs_diff(backward) / 2).ok()
 }
 
 struct Day10;
@@ -102,15 +113,18 @@ impl aoc::Day for Day10 {
     /// The far point is half a lap away, and the lap is always even.
     fn part1(input: &str) -> usize {
         let grid = Grid::parse(input);
-        let edge = compute_edge(&grid);
-        edge.len() / 2
+        compute_edge(&grid).map_or(0, |edge| edge.len() / 2)
     }
 
     /// Pick's theorem rearranged: `interior = area - boundary / 2 + 1`.
     fn part2(input: &str) -> usize {
         let grid = Grid::parse(input);
-        let edge = compute_edge(&grid);
-        shoelace(&edge) - edge.len() / 2 + 1
+        let Some(edge) = compute_edge(&grid) else {
+            return 0;
+        };
+        shoelace(&edge).map_or(0, |area| {
+            area.saturating_sub(edge.len() / 2).saturating_add(1)
+        })
     }
 }
 

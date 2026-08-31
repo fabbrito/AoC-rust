@@ -3,8 +3,14 @@ use std::{collections::HashMap, str::FromStr};
 /// Offsets where a digit run begins; mid-run digits are skipped.
 fn number_starts(line: &str) -> impl Iterator<Item = usize> {
     let bytes = line.as_bytes();
-    (0..bytes.len())
-        .filter(move |&i| bytes[i].is_ascii_digit() && (i == 0 || !bytes[i - 1].is_ascii_digit()))
+    bytes.iter().enumerate().filter_map(move |(i, byte)| {
+        // `checked_sub` doubles as the i == 0 guard: no predecessor, no run.
+        let mid_run = i
+            .checked_sub(1)
+            .and_then(|prev| bytes.get(prev))
+            .is_some_and(u8::is_ascii_digit);
+        (byte.is_ascii_digit() && !mid_run).then_some(i)
+    })
 }
 
 fn symbols_in(line: &str) -> impl Iterator<Item = (usize, u8)> {
@@ -16,10 +22,9 @@ fn symbols_in(line: &str) -> impl Iterator<Item = (usize, u8)> {
 /// Value and width of the digit run at the front of `s`.
 fn number_at(s: &str) -> Option<(u32, usize)> {
     let len = s.find(|c: char| !c.is_ascii_digit()).unwrap_or(s.len());
-    if len == 0 {
-        return None;
-    }
-    Some((s[..len].parse::<u32>().expect("digits fit u32"), len))
+    // An empty run parses as nothing, so len == 0 needs no separate guard.
+    let value = s.get(..len)?.parse().ok()?;
+    Some((value, len))
 }
 
 type Position = (usize, usize);
@@ -46,9 +51,12 @@ impl FromStr for Schematic {
         let mut symbols = HashMap::new();
         for (row, line) in input.lines().enumerate() {
             for start in number_starts(line) {
-                let (value, len) = number_at(&line[start..]).expect("run starts with a digit");
+                let (value, len) = line
+                    .get(start..)
+                    .and_then(number_at)
+                    .ok_or_else(|| format!("row {row}: no number at column {start}"))?;
                 let number = Number { start, value };
-                cells.extend((start..start + len).map(|col| ((row, col), number)));
+                cells.extend((start..).take(len).map(|col| ((row, col), number)));
             }
             symbols.extend(symbols_in(line).map(|(col, symbol)| ((row, col), symbol)));
         }
@@ -61,8 +69,8 @@ impl Schematic {
     fn adjacent_numbers(&self, (row, col): Position) -> HashMap<Position, u32> {
         let mut numbers = HashMap::new();
         // Clamped at the low edge only; an off-grid key just misses.
-        for r in row.saturating_sub(1)..=row + 1 {
-            for c in col.saturating_sub(1)..=col + 1 {
+        for r in row.saturating_sub(1)..=row.saturating_add(1) {
+            for c in col.saturating_sub(1)..=col.saturating_add(1) {
                 if let Some(number) = self.cells.get(&(r, c)) {
                     numbers.insert((r, number.start), number.value);
                 }
@@ -80,13 +88,13 @@ impl Schematic {
 
     /// Touching a `*` already makes a number a part, so no cross-check against
     /// [`Self::part_numbers`] is needed.
-    fn gear_ratios(&self) -> impl Iterator<Item = usize> {
+    fn gear_ratios(&self) -> impl Iterator<Item = u64> {
         self.symbols
             .iter()
             .filter(|&(_, &symbol)| symbol == b'*')
             .map(|(&pos, _)| self.adjacent_numbers(pos))
             .filter(|numbers| numbers.len() == 2)
-            .map(|numbers| numbers.values().map(|&v| v as usize).product())
+            .map(|numbers| numbers.values().copied().map(u64::from).product())
     }
 }
 
@@ -94,24 +102,19 @@ struct Day03;
 
 impl aoc::Day for Day03 {
     const DAY: u32 = 3;
-    type Output = usize;
+    type Output = u64;
 
-    fn part1(input: &str) -> usize {
-        input
-            .parse::<Schematic>()
-            .expect("not parsed correctly")
+    fn part1(input: &str) -> u64 {
+        aoc::parse::<Schematic>(input)
             .part_numbers()
             .values()
-            .map(|&v| v as usize)
+            .copied()
+            .map(u64::from)
             .sum()
     }
 
-    fn part2(input: &str) -> usize {
-        input
-            .parse::<Schematic>()
-            .expect("not parsed correctly")
-            .gear_ratios()
-            .sum()
+    fn part2(input: &str) -> u64 {
+        aoc::parse::<Schematic>(input).gear_ratios().sum()
     }
 }
 

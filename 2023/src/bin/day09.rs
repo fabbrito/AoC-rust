@@ -1,6 +1,13 @@
+use std::str::FromStr;
+
 /// The differences between neighbours — one shorter than `row`.
 fn diff(row: &[i64]) -> Vec<i64> {
-    row.windows(2).map(|w| w[1] - w[0]).collect()
+    // The row zipped against itself one step along: each pair is a neighbour
+    // pair, and the shorter side ends the zip - no indexing, no length maths.
+    row.iter()
+        .zip(row.iter().skip(1))
+        .map(|(&left, &right)| right.saturating_sub(left))
+        .collect()
 }
 
 /// `history` and every difference row below it, ending with the first all-zero
@@ -19,11 +26,20 @@ fn next_value(history: Vec<i64>) -> i64 {
         .sum()
 }
 
+/// One line of the report.
+struct History(Vec<i64>);
+
+impl FromStr for History {
+    type Err = String;
+
+    fn from_str(line: &str) -> Result<Self, Self::Err> {
+        aoc::parse_numbers(line).map(History)
+    }
+}
+
 /// One parsed history per line of the report.
 fn histories(input: &str) -> impl Iterator<Item = Vec<i64>> {
-    input
-        .lines()
-        .map(|line| aoc::parse_numbers(line).expect("numbers"))
+    aoc::parse_lines(input).map(|History(row)| row)
 }
 
 struct Day09;

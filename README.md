@@ -20,8 +20,10 @@ dprint.json             # markdown formatting
 make day YEAR=2023 DAY=1               # scaffold src/bin/day01.rs + inputs/day01.txt
 make run YEAR=2023 DAY=1               # cargo run --release -p aoc2023 --bin day01
 make test YEAR=2023                    # example tests
-make check                             # clippy -D warnings + rustfmt check
-make fmt / make lint                   # rust + shell + markdown (dprint)
+make check                             # cargo check - types only
+make lint                              # clippy + rustfmt/shfmt/shellcheck/dprint
+make pedantic                          # the lints lint does not deny - advisory
+make fmt                               # format rust + shell + markdown
 make hooks                             # enable .githooks (pre-commit + commit-msg)
 ```
 

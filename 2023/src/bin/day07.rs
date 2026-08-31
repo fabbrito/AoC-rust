@@ -95,16 +95,20 @@ impl Hand {
     fn hand_type(&self, rule: Rule) -> HandType {
         let mut counts = [0u8; Card::COUNT];
         for card in self.cards {
-            counts[card as usize] += 1;
+            if let Some(slot) = counts.get_mut(card as usize) {
+                *slot += 1;
+            }
         }
         // Jokers have no group of their own; they all join the largest one,
         // which is always the strongest type reachable from this hand.
         let jokers = match rule {
-            Rule::Jokers => mem::take(&mut counts[Card::Jack as usize]),
+            Rule::Jokers => counts.get_mut(Card::Jack as usize).map_or(0, mem::take),
             Rule::Standard => 0,
         };
         counts.sort_by_key(|&count| Reverse(count));
-        counts[0] += jokers;
+        if let Some(largest) = counts.first_mut() {
+            *largest += jokers;
+        }
 
         match counts {
             [5, ..] => HandType::FiveOfAKind,
@@ -175,13 +179,11 @@ impl aoc::Day for Day07 {
     type Output = usize;
 
     fn part1(input: &str) -> usize {
-        let game = input.parse::<Game>().expect("parsed Game");
-        game.winnings(Rule::Standard)
+        aoc::parse::<Game>(input).winnings(Rule::Standard)
     }
 
     fn part2(input: &str) -> usize {
-        let game = input.parse::<Game>().expect("parsed Game");
-        game.winnings(Rule::Jokers)
+        aoc::parse::<Game>(input).winnings(Rule::Jokers)
     }
 }
 

@@ -8,3 +8,6 @@ aoc.workspace = true
 
 [dev-dependencies]
 indoc.workspace = true
+
+[lints]
+workspace = true

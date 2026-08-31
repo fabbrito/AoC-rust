@@ -14,7 +14,9 @@ fn galaxies(input: &str, factor: usize) -> Vec<Pos> {
             continue;
         }
         for (c, _) in row.match_indices('#') {
-            occupied_cols[c] = true;
+            if let Some(occupied) = occupied_cols.get_mut(c) {
+                *occupied = true;
+            }
             unexpanded.push((r, c));
         }
     }
@@ -25,15 +27,14 @@ fn galaxies(input: &str, factor: usize) -> Vec<Pos> {
         .filter_map(|(c, occ)| (!occ).then_some(c))
         .collect();
 
-    let gap = factor - 1;
+    let gap = factor.saturating_sub(1);
+    let expand = |coord: usize, empties: &[usize]| {
+        let crossed = empties.partition_point(|&e| e < coord);
+        coord.saturating_add(gap.saturating_mul(crossed))
+    };
     unexpanded
         .into_iter()
-        .map(|(r, c)| {
-            (
-                r + gap * empty_rows.partition_point(|&row| row < r),
-                c + gap * empty_cols.partition_point(|&col| col < c),
-            )
-        })
+        .map(|(r, c)| (expand(r, &empty_rows), expand(c, &empty_cols)))
         .collect()
 }
 
@@ -43,9 +44,12 @@ fn sum_distances(galaxies: &[Pos]) -> usize {
         .iter()
         .enumerate()
         .flat_map(|(i, a)| {
-            galaxies[i + 1..]
+            // `skip` past self is the same pair set as slicing from i + 1,
+            // without a range that could outrun the slice.
+            galaxies
                 .iter()
-                .map(move |b| a.0.abs_diff(b.0) + a.1.abs_diff(b.1))
+                .skip(i.saturating_add(1))
+                .map(move |b| a.0.abs_diff(b.0).saturating_add(a.1.abs_diff(b.1)))
         })
         .sum()
 }

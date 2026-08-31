@@ -18,12 +18,15 @@ impl FromStr for Cubes {
                 .split_once(' ')
                 .ok_or("expected '<n> <colour>'")?;
             let count: u32 = count.parse().map_err(|_| format!("bad count: {count}"))?;
-            match name {
-                "red" => cubes.red += count,
-                "green" => cubes.green += count,
-                "blue" => cubes.blue += count,
+            let slot = match name {
+                "red" => &mut cubes.red,
+                "green" => &mut cubes.green,
+                "blue" => &mut cubes.blue,
                 other => return Err(format!("unknown colour: {other}")),
-            }
+            };
+            *slot = slot
+                .checked_add(count)
+                .ok_or_else(|| format!("{name} count overflows u32"))?;
         }
         Ok(cubes)
     }
@@ -42,8 +45,13 @@ impl Cubes {
         }
     }
 
+    /// Saturating: a draw is at most a few dozen cubes, so this cannot really
+    /// overflow — and a pinned `u32::MAX` is a visibly wrong answer, not a
+    /// panic halfway through the input.
     fn power(&self) -> u32 {
-        self.red * self.green * self.blue
+        self.red
+            .saturating_mul(self.green)
+            .saturating_mul(self.blue)
     }
 }
 
@@ -84,27 +92,23 @@ struct Day02;
 
 impl aoc::Day for Day02 {
     const DAY: u32 = 2;
-    type Output = usize;
+    type Output = u32;
 
-    fn part1(input: &str) -> usize {
+    fn part1(input: &str) -> u32 {
         const BAG: Cubes = Cubes {
             red: 12,
             green: 13,
             blue: 14,
         };
-        input
-            .lines()
-            .map(|s| s.parse::<Game>().expect("bad game"))
+        aoc::parse_lines::<Game>(input)
             .filter(|g| g.possible_with(&BAG))
-            .map(|g| g.id as usize)
+            .map(|g| g.id)
             .sum()
     }
 
-    fn part2(input: &str) -> usize {
-        input
-            .lines()
-            .map(|s| s.parse::<Game>().expect("bad game"))
-            .map(|g| g.minimum_set().power() as usize)
+    fn part2(input: &str) -> u32 {
+        aoc::parse_lines::<Game>(input)
+            .map(|g| g.minimum_set().power())
             .sum()
     }
 }

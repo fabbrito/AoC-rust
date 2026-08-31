@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Formatting and a type check, before the commit lands. Clippy and the test
-# suite stay in `make check` / `make test` — neither is fast enough to sit
+# suite stay in `make lint` / `make test` — neither is fast enough to sit
 # between you and a commit.
 #
 # Enable once per clone:  make hooks
