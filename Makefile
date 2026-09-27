@@ -1,10 +1,6 @@
 YEAR ?= 2023
 DAY ?=
 
-SHFMT_FLAGS = -i 0 -ci
-SHELLCHECK_FLAGS = -x -P scripts
-SCRIPTS = $(wildcard scripts/*.sh) $(wildcard .githooks/*)
-
 # printf reads 08 and 09 as bad octal, so strip a leading zero before padding.
 pad = $(shell printf '%02d' $(patsubst 0%,%,$(DAY)))
 
@@ -15,7 +11,6 @@ scope = $(if $(DAY),-p aoc$(YEAR) --bin day$(pad),$(if $(year_set),-p aoc$(YEAR)
 # --all-targets and --tests both override --bin rather than narrowing it. For one day,
 # --profile test is what compiles the bin together with its own #[cfg(test)] module.
 lint_scope = $(scope) $(if $(DAY),--profile test,--all-targets)
-fmt_scope = $(if $(year_set)$(DAY),-p aoc$(YEAR),--all)
 
 # Not adopted (yet): nursery is unstable, and the other three each cost more
 # ceremony than they buy in a puzzle. Advisory - see the `pedantic` target.
@@ -43,8 +38,10 @@ export HELP_AWK
 help: ## show this help
 	@awk "$$HELP_AWK" $(lastword $(MAKEFILE_LIST))
 
+# Once per clone: hooks do not travel with the tree.
 hooks: ## enable .githooks for this clone
 	git config core.hooksPath .githooks
+	@chmod +x .githooks/githooks .githooks/commit-msg .githooks/pre-commit
 	@echo 'hooks enabled - skip one commit with --no-verify'
 
 ##@ Solve
@@ -63,24 +60,22 @@ test: ## cargo test
 check: ## cargo check - types only, no lints
 	cargo check $(lint_scope)
 
-# Clippy levels live in [workspace.lints.clippy]; -D warnings is what catches the
-# rest - rustc's own dead_code, unused_variables and friends.
-lint: ## clippy + rustfmt/shfmt/shellcheck/dprint - read only
+# The lanes live in .githooks/hooks.conf and the vendored engine runs them, so
+# the flags and globs have one home and this target only calls. Clippy levels
+# live in [workspace.lints.clippy]; -D warnings is what catches the rest -
+# rustc's own dead_code, unused_variables and friends. Clippy is not a lane:
+# it is not fast enough to sit between you and a commit.
+lint: ## the commit gate lanes + clippy - read only
+	.githooks/githooks check
 	cargo clippy $(lint_scope) -- -D warnings
-	cargo fmt $(fmt_scope) --check
-	shfmt $(SHFMT_FLAGS) -d $(SCRIPTS)
-	shellcheck $(SHELLCHECK_FLAGS) $(SCRIPTS)
-	dprint check
 
 # Advisory only - it flags plenty that is fine in a puzzle. Mine it for
 # candidates after a day lands; promote a rule by moving it into Cargo.toml.
 pedantic: ## the lints make lint does not deny - advisory
 	cargo clippy $(lint_scope) -- $(ADVISORY)
 
-fmt: ## format rust + shell + markdown - writes
-	cargo fmt --all
-	shfmt $(SHFMT_FLAGS) -w $(SCRIPTS)
-	dprint fmt
+fmt: ## the lanes' fixers: cargo fmt, shfmt -w, dprint fmt - writes
+	.githooks/githooks check --fix
 
 clean: ## cargo clean
 	cargo clean

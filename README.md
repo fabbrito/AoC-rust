@@ -21,10 +21,10 @@ make day YEAR=2023 DAY=1               # scaffold src/bin/day01.rs + inputs/day0
 make run YEAR=2023 DAY=1               # cargo run --release -p aoc2023 --bin day01
 make test YEAR=2023                    # example tests
 make check                             # cargo check - types only
-make lint                              # clippy + rustfmt/shfmt/shellcheck/dprint
+make lint                              # the commit gate lanes + clippy
 make pedantic                          # the lints lint does not deny - advisory
-make fmt                               # format rust + shell + markdown
-make hooks                             # enable .githooks (pre-commit + commit-msg)
+make fmt                               # the lanes' fixers - writes
+make hooks                             # enable .githooks (vendored githooks)
 ```
 
 Or drive cargo directly: `cargo run -p aoc2023 --bin day01`, `cargo test`.
