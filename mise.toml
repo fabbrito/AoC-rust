@@ -3,5 +3,10 @@
 # version here and `make deps`.
 min_version = "2026.9"
 
+[settings]
+# A release is taken a day after it ships. make upgrade holds back what this
+# would refuse; dprint and cargo are told the same day in their own places.
+minimum_release_age = "1d"
+
 [tools]
 # rust: rustup's, on the default stable toolchain - not mise's.

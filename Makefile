@@ -30,7 +30,7 @@ ADVISORY = -W clippy::nursery \
            -W clippy::cast_possible_truncation \
            -W clippy::cast_sign_loss
 
-.PHONY: help day run test typecheck lint pedantic clean
+.PHONY: help day run test typecheck lint pedantic upgrade clean
 
 define HELP_AWK
 BEGIN {
@@ -77,6 +77,22 @@ lint: check ## the gate's lanes, then clippy - read only
 # candidates after a day lands; promote a rule by moving it into Cargo.toml.
 pedantic: ## the lints make lint does not deny - advisory
 	cargo clippy $(lint_scope) -- $(ADVISORY)
+
+##@ Upgrade
+
+# mise's pins, dprint's plugins, cargo's deps - one run, all three on a day's
+# cooldown: mise.toml's minimum_release_age, dprint's flag, cooldown.toml.
+# --bump: the pins are exact, so nothing moves without it. --local: never the
+# global config's tools. A major is held either way; widening one is by hand.
+# fmt before check: a plugin bump reformats, and the diff is the deliverable.
+upgrade: ## bump mise's pins, dprint's plugins and cargo's deps, then check
+	@test -z "$$(git status --porcelain)" || { echo 'the tree is dirty; commit first' >&2; exit 1; }
+	mise upgrade --bump --local
+	mise exec -- dprint config update --yes --reload=plugins --minimum-dependency-age P1D
+	cargo cooldown update
+	make --no-print-directory fmt
+	@git --no-pager diff --stat
+	make --no-print-directory check test
 
 clean: ## cargo clean
 	cargo clean

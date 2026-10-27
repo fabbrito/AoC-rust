@@ -1,0 +1,4 @@
+# Rust is rustup's; cargo-cooldown is the one cargo subcommand make upgrade runs,
+# and cargo has no cooldown of its own on stable.
+[tools]
+"cargo:cargo-cooldown" = "0.3.5"
