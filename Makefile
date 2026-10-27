@@ -1,3 +1,12 @@
+# Recipes are bash with -uo pipefail: base.mk sets SHELL and .SHELLFLAGS.
+
+include .config/make/base.mk
+include .config/make/shell.mk
+include .config/make/dprint.mk
+include .config/make/rust.mk
+
+.DEFAULT_GOAL := help # base.mk defines `deps` first
+
 YEAR ?= 2023
 DAY ?=
 
@@ -21,7 +30,7 @@ ADVISORY = -W clippy::nursery \
            -W clippy::cast_possible_truncation \
            -W clippy::cast_sign_loss
 
-.PHONY: help hooks day run test check lint pedantic fmt clean
+.PHONY: help day run test typecheck lint pedantic clean
 
 define HELP_AWK
 BEGIN {
@@ -34,17 +43,13 @@ BEGIN {
 endef
 export HELP_AWK
 
-##@ Setup
-help: ## show this help
-	@awk "$$HELP_AWK" $(lastword $(MAKEFILE_LIST))
+##@ Help
 
-# Once per clone: hooks do not travel with the tree.
-hooks: ## enable .githooks for this clone
-	git config core.hooksPath .githooks
-	@chmod +x .githooks/githooks .githooks/commit-msg .githooks/pre-commit
-	@echo 'hooks enabled - skip one commit with --no-verify'
+help: ## show this help
+	@awk "$$HELP_AWK" $(MAKEFILE_LIST)
 
 ##@ Solve
+
 day: ## scaffold a day - needs YEAR and DAY
 	@test -n '$(DAY)' || { echo 'set DAY=<n>' >&2; exit 1; }
 	scripts/new-day.sh $(YEAR) $(DAY)
@@ -53,29 +58,25 @@ run: ## run one day in release - DAY required
 	@test -n '$(DAY)' || { echo 'set DAY=<n>' >&2; exit 1; }
 	cargo run --release $(scope)
 
-test: ## cargo test
+test: ## cargo test - by hand, never in the gate
 	cargo test $(scope)
 
 ##@ Quality
-check: ## cargo check - types only, no lints
+
+typecheck: ## cargo check - types only, no lints
 	cargo check $(lint_scope)
 
-# The lanes live in .githooks/hooks.conf and the vendored engine runs them, so
-# the flags and globs have one home and this target only calls. Clippy levels
-# live in [workspace.lints.clippy]; -D warnings is what catches the rest -
-# rustc's own dead_code, unused_variables and friends. Clippy is not a lane:
-# it is not fast enough to sit between you and a commit.
-lint: ## the commit gate lanes + clippy - read only
-	.githooks/githooks check
+# Clippy is not a lane: it is not fast enough to sit between you and a commit,
+# so it rides here, after the gate. Clippy levels live in
+# [workspace.lints.clippy]; -D warnings is what catches the rest - rustc's own
+# dead_code, unused_variables and friends.
+lint: check ## the gate's lanes, then clippy - read only
 	cargo clippy $(lint_scope) -- -D warnings
 
 # Advisory only - it flags plenty that is fine in a puzzle. Mine it for
 # candidates after a day lands; promote a rule by moving it into Cargo.toml.
 pedantic: ## the lints make lint does not deny - advisory
 	cargo clippy $(lint_scope) -- $(ADVISORY)
-
-fmt: ## the lanes' fixers: cargo fmt, shfmt -w, dprint fmt - writes
-	.githooks/githooks check --fix
 
 clean: ## cargo clean
 	cargo clean

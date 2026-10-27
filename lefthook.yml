@@ -1,0 +1,11 @@
+# The commit gate: repokit's templates, copied into .config/lefthook/ and owned
+# here. Message policy is .config/commitlint.config.mjs. No test runs here -
+# `make test` is by hand (AGENTS.md, The commit gate).
+#
+# This repo's own jobs go below - never a name a template uses: the extended
+# job wins.
+extends:
+  - .config/lefthook/base.yml
+  - .config/lefthook/shell.yml
+  - .config/lefthook/dprint.yml
+  - .config/lefthook/rust.yml

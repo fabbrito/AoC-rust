@@ -1,0 +1,16 @@
+# templates/shell: copy to .config/lefthook/shell.yml, list it under
+# `extends:`. shfmt formats, shellcheck lints. Per-repo shellcheck flags (-P,
+# -e) go in .shellcheckrc: a job extends defines wins over a local one with
+# the same name. shfmt writes and re-stages; shellcheck checks. The whole
+# tree is make.mk's.
+pre-commit:
+  jobs:
+    - name: shfmt
+      glob: &shell ["**/*.sh"]
+      file_types: &file [not symlink]
+      run: shfmt -i 0 -ci -w {staged_files}
+      stage_fixed: true
+    - name: shellcheck
+      glob: *shell
+      file_types: *file
+      run: shellcheck -x {staged_files}
