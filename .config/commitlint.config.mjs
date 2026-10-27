@@ -7,11 +7,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 
 // Basenames of the directories under root, relative to the repo root: a
-// scope per package. A missing root is no scopes, not an error.
-export const dirs = (root) => {
+// scope per package. A missing root is no scopes, not an error. With a pattern,
+// only the names it matches: dirs(".", /^\d{4}$/) for the year crates.
+export const dirs = (root, pattern) => {
   try {
     return readdirSync(root, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
+      .filter((d) => d.isDirectory() && (!pattern || pattern.test(d.name)))
       .map((d) => d.name);
   } catch {
     return [];
@@ -21,7 +22,7 @@ export const dirs = (root) => {
 const types = ["feat", "fix", "refactor", "chore", "style", "docs", "test", "build", "perf"];
 // Cross-cutting names, then one scope per year crate. `aoc` is the shared lib,
 // `templates` and `scripts` the scaffolding, `hooks` the gate itself.
-const scopes = ["repo", "aoc", "templates", "scripts", "hooks", ...dirs(".").filter((d) => /^\d{4}$/.test(d))];
+const scopes = ["repo", "aoc", "templates", "scripts", "hooks", ...dirs(".", /^\d{4}$/)];
 
 const scissors = "# ------------------------ >8 ------------------------";
 const reTrailer = /^[A-Za-z][A-Za-z0-9-]*: \S/;
@@ -96,19 +97,23 @@ export const bodyBullets = ({ raw }, _when, max = 2) => {
   return [errs.length === 0, errs.join("\n    ")];
 };
 
-// config-conventional has no rule for an empty scope, and scope-empty would
-// make the scope mandatory instead.
-export const scopeNotEmpty = ({ scope }) => [
-  scope == null || scope.length > 0,
+// config-conventional has no rule for `feat(): x`. The parser reads empty
+// parens as no scope at all, so `scope-empty` and `scope-enum` both skip it -
+// the header is where the parens still show.
+export const scopeNotEmpty = ({ header }) => [
+  !/^[A-Za-z]+\(\)/.test(header ?? ""),
   "empty scope\n  write: drop the parens, or name a scope",
 ];
 
-// No trailer vocabulary here: a `Key: value` line is one nobody meant to ship.
+// This repo has no trailer vocabulary: a `Key: value` line is one nobody meant
+// to ship. The header is skipped - `feat: x` matches the trailer shape.
 export const noTrailers = ({ raw }) => {
   const errs = [];
-  messageLines(raw).forEach((line, i) => {
-    if (reTrailer.test(line)) errs.push(`line ${i + 1} is a trailer: ${line}`);
-  });
+  messageLines(raw)
+    .slice(1)
+    .forEach((line, i) => {
+      if (reTrailer.test(line)) errs.push(`line ${i + 2} is a trailer: ${line}`);
+    });
   return [
     errs.length === 0,
     errs.length === 0 ? "" : `${errs.join("\n    ")}\n  write: no trailers - say it in a bullet`,
