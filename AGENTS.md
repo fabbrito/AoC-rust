@@ -11,6 +11,17 @@ benchmarks, formatting. Do these outright.
 Don't edit `*/src/bin/dayNN.rs` unless I ask. Show me the snippet and I'll type it — that's where
 the learning is.
 
+## The commit gate
+
+Lanes are lefthook's: `lefthook.yml` extends repokit's templates in `.config/lefthook/`, owned here.
+This repo's own jobs go there too — never a template's job name, the extended one wins. Message
+policy is `.config/commitlint.config.mjs`.
+
+Tools are pinned in mise (`.config/mise/conf.d/`); Rust is rustup's, on stable. Hooks and `make` put
+mise's tools on `PATH` and fail without it — never a system copy. The hooks grade what is staged,
+`make check` / `make fmt` the whole tree, and a missing tool fails rather than skips. Tests and
+clippy are not lanes: `make test`, `make lint`, by hand.
+
 ## The four beats
 
 Understand → model → write → refine. In order. Say which beat we're in when it changes.
